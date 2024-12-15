@@ -20,6 +20,61 @@ from complexity import (
 from collections import namedtuple
 
 ## TODO: Data Generation
+from abc import ABC, abstractmethod
+from collections import namedtuple
+import random
+import numpy as np
+import networkx as nx
+
+
+class DataGenerator(ABC):
+    @abstractmethod
+    def generate(self, size: int):
+        pass
+
+class LinearDataGenerator(DataGenerator):
+    def generate(self, size: int) -> list[int]:
+        return list(range(1, size + 1))
+
+class RandomDataGenerator(DataGenerator):
+    def __init__(self, low: int = 0, high: int = 100):
+        self.low = low
+        self.high = high
+
+    def generate(self, size: int) -> list[int]:
+        return [random.randint(self.low, self.high) for _ in range(size)]
+
+class DataGeneratorFactory:
+    def __init__(self):
+        self.generators = {}
+
+    def register_generator(self, name: str, generator: DataGenerator):
+        self.generators[name] = generator
+
+    def get_generator(self, name: str) -> DataGenerator:
+        if name not in self.generators:
+            raise ValueError(f"Generator '{name}' not found.")
+        return self.generators[name]
+
+
+factory = DataGeneratorFactory()
+factory.register_generator("random", RandomDataGenerator(0, 50))
+factory.register_generator("sorted", LinearDataGenerator())
+
+
+lengths = [10, 100, 1000]
+nbr_experiments = 3
+
+random_arrays = [
+    [factory.get_generator("random").generate(size) for _ in range(nbr_experiments)]
+    for size in lengths
+]
+
+sorted_arrays = [
+    [factory.get_generator("sorted").generate(size) for _ in range(nbr_experiments)]
+    for size in lengths
+]
+
 
 # Set up data generators
 factory = DataGeneratorFactory()
@@ -69,8 +124,44 @@ def selection_sort(arr):
 
 ## TODO: Complete the merge sort
 
+
 def merge_sort(arr):
-    pass
+    comparisons = 0
+    move_count = 0
+
+    def merge(left, right):
+        nonlocal comparisons, move_count
+        result = []
+        i = j = 0
+
+        while i < len(left) and j < len(right):
+            comparisons += 1
+            if left[i] < right[j]:
+                result.append(left[i])
+                move_count += 1
+                i += 1
+            else:
+                result.append(right[j])
+                move_count += 1
+                j += 1
+
+        # Append remaining elements
+        result.extend(left[i:])
+        result.extend(right[j:])
+
+        return result
+
+    def _merge_sort(arr):
+        if len(arr) <= 1:
+            return arr
+        mid = len(arr) // 2
+        left = _merge_sort(arr[:mid])
+        right = _merge_sort(arr[mid:])
+        return merge(left, right)
+
+    sorted_arr = _merge_sort(arr)
+    return Metrics(len(arr), comparisons, move_count)
+
 
 # Algorithms to benchmark
 funcs = [
